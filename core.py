@@ -154,10 +154,9 @@ def rollout(
     '''
     unroll k steps
     '''
-    def body(i, carry):
+    def _body(carry, _):
         st, k = carry
         st2, k2 = step(st, params, k, config)
-        return (st2, k2)
-
-    final_state, final_key = jax.lax.fori_loop(0, K, body, (state, key))
+        return (st2, k2), None
+    (final_state, final_key), _ = lax.scan(_body, (state, key), xs=None, length=int(K))
     return final_state, final_key

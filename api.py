@@ -17,7 +17,7 @@ class NCASubstrate:
         jit_compile: bool = True
     ) -> None:
         self.config = config
-        self.key = key if key is not None else jax.random.key(420)
+        self.key = key if key is not None else jax.random.PRNGKey(420)
 
         # init params/state if missing
         if params is None:

@@ -120,9 +120,9 @@ def init_params(key: jax.Array, config: Config) -> Params:
         conv_b = jnp.zeros((0,), dtype=config.dtype)
         k_w1 = k2
 
-    w1 = W1_init(k1, (in_dim, hidden), dtype=config.dtype)
+    w1 = W1_init(k3, (in_dim, hidden), dtype=config.dtype)
     b1 = jnp.zeros((hidden,), dtype=config.dtype)
-    w2 = W2_init(k2, (hidden, out_dim), dtype=config.dtype)
+    w2 = W2_init(k4, (hidden, out_dim), dtype=config.dtype)
     b2 = jnp.zeros((out_dim,), dtype=config.dtype)
 
     return Params(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2)

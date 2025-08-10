@@ -53,7 +53,7 @@ def write(
     if mode == 'set':
         new_grid = g.at[idx].set(val)
     elif mode == 'add':
-        new_grid = g.at[idx].set(val)
+        new_grid = g.at[idx].add(val)
     else:
         raise ValueError('mode must be set or add')
 

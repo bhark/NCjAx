@@ -64,7 +64,6 @@ class NCASubstrate:
         out_state, _ = self._jit_rollout(self._state, self._params, key, int(K))
         return out_state
 
-
     # -- i/o helpers to go slightly less insane --
 
     def inform(
@@ -106,11 +105,43 @@ class NCASubstrate:
 
     # -- state and params management --
     
+    def feed(self, input_data, *, key=None):
+        """
+        the universal step function:
+        1. Write input to input patch
+        2. process K steps 
+        3. read and return output
+        
+        state is maintained between calls
+        """
+        key = self._use_or_split_key(key)
+        
+        if input_data is not None:
+            self.inform(
+                value=input_data,
+                channels=range(self.config.io_channels),  # visible channels
+                size=(1, 1),  # or could be configurable
+                margin=3,
+                mode='set'
+            )
+        
+        self.step(self.config.k_default, key=key)
+        
+        # Read output
+        output = self.extract(
+            channels=range(self.config.io_channels),  # visible channels
+            size=(1, 1),
+            margin=3,
+            reduction='mean'
+        )
+        
+        return output
+
     @property
     def state(self) -> State:
         return self._state
 
-    def reset(self, *, key: jax.Array | None, state: State | None = None) -> State:
+    def reset(self, *, key: jax.Array | None = None, state: State | None = None) -> State:
         ''' reset grid to zeros or a provided state '''
         if state is not None:
             self._state = state

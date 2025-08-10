@@ -1,8 +1,36 @@
 from dataclasses import dataclass
 import jax
 import jax.numpy as jnp
-from jax.nn.initializers import glorot_uniform, zeros
+from jax.nn.initializers import glorot_uniform
 from .config import Config
+
+# -- helpers for node layout --
+
+def _circle_layout(N: int, k: int, radius_ratio: float = 0.35) -> jnp.ndarray:
+    ''' return integer (x,y) positions on a circle, shape (k,2) '''
+    c = (N - 1) / 2.0
+    r = max(1.0, radius_ratio * N)
+    idx = jnp.arange(k, dtype=jnp.float32)
+    theta = 2.0 * jnp.pi * (idx / float(k))
+    xs = jnp.clip(jnp.round(c + r * jnp.cos(theta)), 0, N - 1).astype(jnp.int32)
+    ys = jnp.clip(jnp.round(c + r * jnp.sin(theta)), 0, N - 1).astype(jnp.int32)
+    return jnp.stack([xs, ys], axis=-1)  # (k,2)
+
+def _default_output_nodes(N: int, m: int) -> jnp.ndarray:
+    ''' place m outputs around center (on a small cross) '''
+    c = (N - 1) // 2
+    offsets = jnp.array([(0,-1),(0,1),(1,0),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)], dtype=jnp.int32)
+    pos = []
+    used = set()
+    for i in range(m):
+        dx, dy = tuple(offsets[i % offsets.shape[0]].tolist())
+        x = int(jnp.clip(c + dx, 0, N - 1))
+        y = int(jnp.clip(c + dy, 0, N - 1))
+        if (x,y) in used:
+            x, y = c, c
+        used.add((x,y))
+        pos.append((x,y))
+    return jnp.asarray(pos, dtype=jnp.int32)
 
 # -- state --
 
@@ -52,8 +80,20 @@ class Params:
 
 def init_state(key: jax.Array, config: Config) -> State:
     ''' init grid state '''
-    grid = jnp.zeros(config.grid_shape, dtype=config.dtype)
-    return State(grid=grid)
+    C, N = config.C, config.grid_size
+    g = jnp.zeros((C, N, N), dtype=config.dtype)
+    in_idx = config.idx_in_flag
+    out_idx = config.idx_out_flag
+
+    # input nodes: circle layout
+    inp_xy = _circle_layout(N, config.num_input_nodes)
+    g = g.at[in_idx, inp_xy[:,1], inp_xy[:,0]].set(1.0)
+
+    # output nodes near center
+    out_xy = _default_output_nodes(N, config.num_output_nodes)
+    g = g.at[out_idx, out_xy[:,1], out_xy[:,0]].set(1.0)
+
+    return State(grid=g)
 
 def init_params(key: jax.Array, config: Config) -> Params:
     ''' init params '''

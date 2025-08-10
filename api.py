@@ -66,76 +66,23 @@ class NCASubstrate:
 
     # -- i/o helpers to go slightly less insane --
 
-    def inform(
-        self,
-        value,
-        *,
-        channels = None,
-        size: tuple[int, int] = (1, 1),
-        margin: int = 3,
-        mode: str = 'set'
-    ) -> State:
-        '''
-        convenient input writing
-        (defaults to upper left of the substrate)
-        '''
-        self._state = io_ops.inform(
-            self._state, self.config, value=value, channels=channels, size=size, margin=margin, mode=mode
-        )
+    def write_inputs(self, values, *, mode: str = 'set') -> State:
+        self._state = io_ops.inform_nodes(self._state, self.config, values, mode=mode)
         return self._state
 
-    def extract(
-        self,
-        *,
-        channels=None,
-        size: tuple[int, int] = (1, 1),
-        margin: int = 3,
-        reduction: str = 'mean'
-    ):
-        '''
-        convenient output reading
-        (defaults to lower right of the substrate)
-        '''
-        return io_ops.extract(
-            self._state, self.config, channels=channels, size=size, margin=margin, reduction=reduction
-        )
+    def read_outputs(self) -> jnp.ndarray:
+        return io_ops.extract_nodes(self._state, self.config)
 
-    ### maybe add more low-level access here at some point
+    # convenient wrappers
+    def inform(self, value, *, mode: str = 'set') -> State:
+        self._state = io_ops.inform(self._state, self.config, value=value, mode=mode)
+        return self._state
+
+    def extract(self):
+        return io_ops.extract(self._state, self.config)
 
 
     # -- state and params management --
-    
-    def feed(self, input_data, *, key=None):
-        """
-        the universal step function:
-        1. Write input to input patch
-        2. process K steps 
-        3. read and return output
-        
-        state is maintained between calls
-        """
-        key = self._use_or_split_key(key)
-        
-        if input_data is not None:
-            self.inform(
-                value=input_data,
-                channels=range(self.config.io_channels),  # visible channels
-                size=(1, 1),  # or could be configurable
-                margin=3,
-                mode='set'
-            )
-        
-        self.step(self.config.k_default, key=key)
-        
-        # Read output
-        output = self.extract(
-            channels=range(self.config.io_channels),  # visible channels
-            size=(1, 1),
-            margin=3,
-            reduction='mean'
-        )
-        
-        return output
 
     @property
     def state(self) -> State:
@@ -165,10 +112,11 @@ class NCASubstrate:
         pcount = num_params(self._params)
         return (
             f'NCASubstrate:\n'
-            f'  Grid: C={C} (visible={self.config.io_channels}, hidden={self.config.hidden_channels}), N={N}\n'
+            f'  Grid: C={C} (info=1, hidden={self.config.hidden_channels}, id=2), N={N}\n'
             f'  Perception: {self.config.perception} (F={F}) → input_dim={C*F}\n'
             f'  MLP: hidden={self.config.hidden}, params={pcount}\n'
             f'  Dynamics: fire_rate={self.config.fire_rate}, K_default={self.config.k_default}\n'
+            f'  I/O nodes: inputs={self.config.num_input_nodes}, outputs={self.config.num_output_nodes}\n'
             f'  Dtype: {self.config.dtype.name}'
         )
 

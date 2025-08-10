@@ -5,18 +5,28 @@ from jax import lax, nn
 from .config import Config
 from .structure import State, Params
 
+# -- padding helpers --
+def _pad_chw(grid: jnp.ndarray, padding: str) -> jnp.ndarray:
+    # grid: (C,H,W) -> pad 1 on H/W
+    if padding == 'reflect':
+        return jnp.pad(grid, ((0,0),(1,1),(1,1)), mode='reflect')
+    # zeros
+    return jnp.pad(grid, ((0,0),(1,1),(1,1)), mode='constant', constant_values=0.0)
+
+def _pad_nchw(x: jnp.ndarray, padding: str) -> jnp.ndarray:
+    # x: (N,C,H,W)
+    if padding == 'reflect':
+        return jnp.pad(x, ((0,0),(0,0),(1,1),(1,1)), mode='reflect')
+    return jnp.pad(x, ((0,0),(0,0),(1,1),(1,1)), mode='constant', constant_values=0.0)
+
 # -- perception --
 
-def _reflect_pad(grid: jnp.ndarray) -> jnp.ndarray:
-    ''' pad spatial dims by 1 with reflect '''
-    return jnp.pad(grid, ((0, 0), (1, 1), (1, 1)), mode='reflect')
-
-def _neighbor_taps(grid: jnp.ndarray) -> tuple[jnp.ndarray, ...]:
+def _neighbor_taps(grid: jnp.ndarray, padding: str) -> tuple[jnp.ndarray, ...]:
     '''
     return 9 taps for each channel (center + neigbors)
     each tap is (C, grid_size, grid_size), uses reflect padding
     '''
-    p = _reflect_pad(grid)
+    p = _pad_chw(grid, padding)
     center     = p[:, 1:-1, 1:-1]
     up         = p[:, 0:-2, 1:-1]
     down       = p[:, 2:  , 1:-1]
@@ -28,21 +38,35 @@ def _neighbor_taps(grid: jnp.ndarray) -> tuple[jnp.ndarray, ...]:
     down_right = p[:, 2:  , 2:  ]
     return (center, up, down, left, right, up_left, up_right, down_left, down_right)
 
-def perception(state: State, config: Config) -> jnp.ndarray:
+def perception(state: State, params: Params, config: Config) -> jnp.ndarray:
     '''
     compute perception features for each cell
     '''
     g = state.grid
 
+    if config.perception == 'learned3x3':
+        # NCHW input
+        x = g[None, :, :, :]
+        x = _pad_nchw(x, config.padding)
+        w = params.conv_w
+        b = params.conv_b
+        feats = lax.conv_general_dilated(
+            x, w, window_strides=(1,1), padding='VALID',
+            dimension_numbers=('NCHW', 'OIHW', 'NCHW')
+        )
+        if b.size > 0:
+            feats = feats + b[None, :, None, None]
+        return jnp.squeeze(feats, axis=0).astype(config.dtype)
+
     # identity + laplacian
     if config.perception == 'id_lap':
-        center, up, down, left, right, *_ = _neighbor_taps(g)
+        center, up, down, left, right, *_ = _neighbor_taps(g, config.padding)
         lap = (up + down + left + right) - 4.0 * center
         feats = jnp.concatenate([center, lap], axis=0)
         return feats.astype(config.dtype)
 
     # raw9
-    taps = _neighbor_taps(g)
+    taps = _neighbor_taps(g, config.padding)
     feats = jnp.concatenate(list(taps), axis=0)
     return feats.astype(config.dtype)
 
@@ -79,7 +103,7 @@ def _apply_fire_rate(
     per-cell stochastic update
     '''
     if p >= 1.0:
-        return updated, key # as-is
+        return updated, key # everything fires, kaboom
     if p <= 0.0:
         return old, key # nothing fires
     
@@ -113,9 +137,10 @@ def step(
     '''
     a single CA tick
     '''
-    feats = perception(state, config)
+    feats = perception(state, params, config)
     delta = mlp(feats, params, config)
     updated = state.grid + delta
+    updated = _apply_read_only(updated, state.grid, config)
     mixed, key = _apply_fire_rate(key, updated, state.grid, config.fire_rate)
     return State(grid=mixed), key
 

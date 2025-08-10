@@ -3,8 +3,8 @@ from typing import Literal
 import jax.numpy as jnp
 from jax.typing import DTypeLike
 
-PerceptionMode = Literal['id_lap', 'raw9']
-PaddingMode = Literal['reflect']
+PerceptionMode = Literal['id_lap', 'raw9', 'learned3x3']
+PaddingMode = Literal['reflect', 'zeros']
 
 @dataclass(slots=True, frozen=True)
 class Config:
@@ -14,6 +14,11 @@ class Config:
     - 1 information channel (immutable at input cells)
     - H hidden channels
     - 2 identifier channels: input_flag, output_flag (immutable)
+
+    perception modes:
+    - 'id_lap': concat(center, laplacian) over all channels
+    - 'raw9': concat 9 neighbor taps over all channels
+    - 'learned3x3': 3x3 conv with K learnable filters
     """
 
     grid_size: int = 16
@@ -29,7 +34,8 @@ class Config:
 
     dtype: DTypeLike = field(default=jnp.float32, repr=False)
 
-    padding: PaddingMode = 'reflect'
+    padding: PaddingMode = 'zeros'
+    conv_features: int = 20
 
     # -- properties --
 
@@ -49,12 +55,14 @@ class Config:
     @property
     def F(self) -> int:
         ''' number of perception features per channel '''
-        return 2 if self.perception == 'id_lap' else 9
+        if self.perception == 'id_lap': return 2
+        if self.perception == 'raw9': return 9
+        return None # for learned3x3
 
     @property
     def input_feats_per_cell(self) -> int:
         ''' size of per-cell perception vector fed to mlp '''
-        return self.C * self.F
+        return self.conv_features if self.perception == 'learned3x3' else self.C * int(self.F)
 
     @property
     def grid_shape(self) -> tuple[int, int, int]:
@@ -84,25 +92,29 @@ class Config:
             raise ValueError(f'Fire rate must be in [0,1], got {self.fire_rate}')
         if self.k_default <= 0:
             raise ValueError(f'K must be larger than 0, got {self.k_default}')
-        if self.perception not in ('id_lap', 'raw9'):
+        if self.perception not in ('id_lap', 'raw9', 'learned3x3'):
             raise ValueError(f'Unsupported perception mode: {self.perception}')
-        if self.padding != 'reflect':
-            raise ValueError(f'Unsupported padding mode: {self.padding}')
         if self.hidden_channels < 0:
             raise ValueError('hidden_channels must be >= 0')
         if self.num_input_nodes <= 0:
             raise ValueError('num_input_nodes must be >= 1')
         if self.num_output_nodes <= 0:
             raise ValueError('num_output_nodes must be >= 1')
+        if self.perception == 'learned3x3' and self.conv_features <= 0:
+            raise ValueError('conv_features must be > 0 for learned3x3')
         object.__setattr__(self, 'dtype', jnp.dtype(self.dtype))
 
     
     # -- convenience stuff --
     def describe(self) -> str:
+        perc = (f"learned3x3(K={self.conv_features}, padding={self.padding})"
+                if self.perception == 'learned3x3'
+                else f"{self.perception} (F={self.F}, padding={self.padding})")
+
         return(
             'NCA config:\n'
             f' Grid: C={self.C} (info=1, hidden={self.hidden_channels}, id=2), size={self.grid_size}\n'
-            f' Perception: {self.perception} (F={self.F})\n'
+            f' Perception: {perc}\n'
             f' MLP: hidden={self.hidden}\n'
             f' Dynamics: fire_rate={self.fire_rate}, K={self.k_default}\n'
             f' I/O nodes: inputs={self.num_input_nodes}, outputs={self.num_output_nodes}\n'

@@ -58,22 +58,26 @@ class Params:
     MLP is two dense layers applied channel-wise
     '''
 
+    # learned conv frontend
+    conv_w: jnp.ndarray
+    conv_b: jnp.ndarray
+
     w1: jnp.ndarray # (in_dim, hidden)
     b1: jnp.ndarray # (hidden,)
     w2: jnp.ndarray # (hidden, out_dim)
     b2: jnp.ndarray # (out_dim,)
 
     def tree_flatten(self):
-        return ((self.w1, self.b1, self.w2, self.b2), None)
+        return ((self.conv_w, self.conv_b, self.w1, self.b1, self.w2, self.b2), None)
 
     @classmethod
     def tree_unflatten(cls, aux, children):
-        w1, b1, w2, b2 = children
-        return cls(w1=w1, b1=b1, w2=w2, b2=b2)
+        conv_w, conv_b, w1, b1, w2, b2 = children
+        return cls(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2)
 
     @property
-    def sizes(self) -> tuple[tuple[int, int], tuple[int], tuple[int, int], tuple[int]]:
-        return self.w1.shape, self.b1.shape, self.w2.shape, self.b2.shape
+    def sizes(self):
+        return (self.conv_w.shape, self.conv_b.shape, self.w1.shape, self.b1.shape, self.w2.shape, self.b2.shape)
 
 
 # -- initializers --
@@ -101,18 +105,29 @@ def init_params(key: jax.Array, config: Config) -> Params:
     hidden = config.hidden
     out_dim = config.C
 
-    k1, k2 = jax.random.split(key, 2)
+    k1, k2, k3, k4 = jax.random.split(key, 4)
     W1_init = glorot_uniform()
     W2_init = glorot_uniform()
+
+    # learned 3x3 conv filters if requested
+    if config.perception == 'learned3x3':
+        kf = config.conv_features
+        conv_w = jax.random.normal(k1, (kf, config.C, 3, 3), dtype=config.dtype) * (1.0 / jnp.sqrt(3 * 3 * config.C))
+        conv_b = jnp.zeros((kf,), dtype=config.dtype)
+        k_w1 = k2
+    else:
+        conv_w = jnp.zeros((0,), dtype=config.dtype)
+        conv_b = jnp.zeros((0,), dtype=config.dtype)
+        k_w1 = k2
 
     w1 = W1_init(k1, (in_dim, hidden), dtype=config.dtype)
     b1 = jnp.zeros((hidden,), dtype=config.dtype)
     w2 = W2_init(k2, (hidden, out_dim), dtype=config.dtype)
     b2 = jnp.zeros((out_dim,), dtype=config.dtype)
 
-    return Params(w1=w1, b1=b1, w2=w2, b2=b2)
+    return Params(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2)
 
 # -- utils --
 
 def num_params(p: Params) -> int:
-    return sum(int(jnp.size(arr)) for arr in (p.w1, p.b1, p.w2, p.b2))
+    return sum(int(jnp.size(arr)) for arr in (p.conv_w, p.conv_b, p.w1, p.b1, p.w2, p.b2))

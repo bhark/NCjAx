@@ -108,12 +108,17 @@ class NCASubstrate:
 
     def explain(self) -> str:
         C, N = self.config.C, self.config.grid_size
-        F = self.config.F
         pcount = num_params(self._params)
+        if self.config.perception == 'learned3x3':
+            perc = f"learned3x3(K={self.config.conv_features}, padding={self.config.padding})"
+            in_dim = self.config.input_feats_per_cell
+        else:
+            perc = f"{self.config.perception} (F={self.config.F}, padding={self.config.padding})"
+            in_dim = self.config.input_feats_per_cell
         return (
             f'NCASubstrate:\n'
             f'  Grid: C={C} (info=1, hidden={self.config.hidden_channels}, id=2), N={N}\n'
-            f'  Perception: {self.config.perception} (F={F}) → input_dim={C*F}\n'
+            f'  Perception: {perc} → input_dim={in_dim}\n'
             f'  MLP: hidden={self.config.hidden}, params={pcount}\n'
             f'  Dynamics: fire_rate={self.config.fire_rate}, K_default={self.config.k_default}\n'
             f'  I/O nodes: inputs={self.config.num_input_nodes}, outputs={self.config.num_output_nodes}\n'

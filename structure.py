@@ -17,20 +17,20 @@ def _circle_layout(N: int, k: int, radius_ratio: float = 0.35) -> jnp.ndarray:
     return jnp.stack([xs, ys], axis=-1)  # (k,2)
 
 def _default_output_nodes(N: int, m: int) -> jnp.ndarray:
-    ''' place m outputs around center (on a small cross) '''
     c = (N - 1) // 2
-    offsets = jnp.array([(0,-1),(0,1),(1,0),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)], dtype=jnp.int32)
-    pos = []
-    used = set()
-    for i in range(m):
-        dx, dy = tuple(offsets[i % offsets.shape[0]].tolist())
-        x = int(jnp.clip(c + dx, 0, N - 1))
-        y = int(jnp.clip(c + dy, 0, N - 1))
-        if (x,y) in used:
-            x, y = c, c
-        used.add((x,y))
-        pos.append((x,y))
-    return jnp.asarray(pos, dtype=jnp.int32)
+    # (dx, dy) around center; order is irrelevant as long as it's fixed
+    offsets = jnp.array(
+        [(0, -1), (0, 1), (1, 0), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)],
+        dtype=jnp.int32
+    )  # shape (8, 2)
+
+    idx = jnp.arange(m, dtype=jnp.int32) % offsets.shape[0]  # (m,)
+    sel = offsets[idx]                                       # (m, 2)
+
+    center = jnp.array([c, c], dtype=jnp.int32)              # (2,)
+    pos = center[None, :] + sel                              # (m, 2)
+    pos = jnp.clip(pos, 0, N - 1)                            # keep in-bounds
+    return pos  # (m,2) as (x, y)
 
 # -- state --
 

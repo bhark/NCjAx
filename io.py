@@ -13,18 +13,15 @@ def _circle_layout(N: int, k: int, radius_ratio: float = 0.35) -> jnp.ndarray:
 
 def _default_output_nodes(N: int, m: int) -> jnp.ndarray:
     c = (N - 1) // 2
-    offsets = jnp.array([(0,-1),(0,1),(1,0),(-1,0),(1,1),(-1,-1),(1,-1),(-1,1)], dtype=jnp.int32)
-    pos = []
-    used = set()
-    for i in range(m):
-        dx, dy = tuple(offsets[i % offsets.shape[0]].tolist())
-        x = int(jnp.clip(c + dx, 0, N - 1))
-        y = int(jnp.clip(c + dy, 0, N - 1))
-        if (x,y) in used:
-            x, y = c, c
-        used.add((x,y))
-        pos.append((x,y))
-    return jnp.asarray(pos, dtype=jnp.int32)
+    offsets = jnp.array(
+        [(0, -1), (0, 1), (1, 0), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)],
+        dtype=jnp.int32
+    )
+    idx = jnp.arange(m, dtype=jnp.int32) % offsets.shape[0]
+    sel = offsets[idx]
+    center = jnp.array([c, c], dtype=jnp.int32)
+    pos = jnp.clip(center[None, :] + sel, 0, N - 1)
+    return pos
 
 def input_positions(config: Config) -> jnp.ndarray:
     return _circle_layout(config.grid_size, config.num_input_nodes)

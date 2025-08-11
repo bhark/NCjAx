@@ -14,9 +14,9 @@ def _default_output_nodes(N: int, m: int) -> jnp.ndarray:
     c = (N - 1) // 2
     # (dx, dy) around center; order is irrelevant as long as it's fixed
     offsets = jnp.array(
-        [(0, -1), (0, 1), (1, 0), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)],
+        [(0, -2), (0, 2), (2, 0), (-2, 0), (2, 2), (-2, -2), (2, -2), (-2, 2)],
         dtype=jnp.int32
-    )  # shape (8, 2)
+    )
 
     idx = jnp.arange(m, dtype=jnp.int32) % offsets.shape[0]  # (m,)
     sel = offsets[idx]                                       # (m, 2)

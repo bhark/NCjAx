@@ -1,27 +1,7 @@
 import jax.numpy as jnp
 from .structure import State
 from .config import Config
-
-def _circle_layout(N: int, k: int, radius_ratio: float = 0.35) -> jnp.ndarray:
-    c = (N - 1) / 2.0
-    r = max(1.0, radius_ratio * N)
-    idx = jnp.arange(k, dtype=jnp.float32)
-    theta = 2.0 * jnp.pi * (idx / float(k))
-    xs = jnp.clip(jnp.round(c + r * jnp.cos(theta)), 0, N - 1).astype(jnp.int32)
-    ys = jnp.clip(jnp.round(c + r * jnp.sin(theta)), 0, N - 1).astype(jnp.int32)
-    return jnp.stack([xs, ys], axis=-1)
-
-def _default_output_nodes(N: int, m: int) -> jnp.ndarray:
-    c = (N - 1) // 2
-    offsets = jnp.array(
-        [(0, -1), (0, 1), (1, 0), (-1, 0), (1, 1), (-1, -1), (1, -1), (-1, 1)],
-        dtype=jnp.int32
-    )
-    idx = jnp.arange(m, dtype=jnp.int32) % offsets.shape[0]
-    sel = offsets[idx]
-    center = jnp.array([c, c], dtype=jnp.int32)
-    pos = jnp.clip(center[None, :] + sel, 0, N - 1)
-    return pos
+from .utils import _circle_layout, _default_output_nodes
 
 def input_positions(config: Config) -> jnp.ndarray:
     return _circle_layout(config.grid_size, config.num_input_nodes)

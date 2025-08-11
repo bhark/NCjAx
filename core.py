@@ -87,7 +87,8 @@ def mlp(feats: jnp.ndarray, params: Params, config: Config) -> jnp.ndarray:
     out = jnp.tensordot(h, params.w2, axes=((2,), (0,)))
     out = out + params.b2
 
-    delta = jnp.moveaxis(out, -1, 0) * 0.1
+    delta = jnp.moveaxis(out, -1, 0)
+    delta = jnp.tanh(delta) * params.gain[:, None, None]
     return delta.astype(config.dtype)
 
 # -- fire-rate --
@@ -139,7 +140,8 @@ def step(
     feats = perception(state, params, config)
     delta = mlp(feats, params, config)
     updated = state.grid + delta
-    updated = jnp.clip(updated, -5.0, 5.0)
+    leak = 0.995
+    updated = jnp.clip(updated * leak, -5.0, 5.0)
     updated = _apply_read_only(updated, state.grid, config)
     mixed, key = _apply_fire_rate(key, updated, state.grid, config.fire_rate)
     return State(grid=mixed), key

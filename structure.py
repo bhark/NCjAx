@@ -40,17 +40,19 @@ class Params:
     w2: jnp.ndarray # (hidden, out_dim)
     b2: jnp.ndarray # (out_dim,)
 
+    gain: jnp.ndarray # (config.C,)
+
     def tree_flatten(self):
-        return ((self.conv_w, self.conv_b, self.w1, self.b1, self.w2, self.b2), None)
+        return ((self.conv_w, self.conv_b, self.w1, self.b1, self.w2, self.b2, self.gain), None)
 
     @classmethod
     def tree_unflatten(cls, aux, children):
-        conv_w, conv_b, w1, b1, w2, b2 = children
-        return cls(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2)
+        conv_w, conv_b, w1, b1, w2, b2, gain = children
+        return cls(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2, gain=gain)
 
     @property
     def sizes(self):
-        return (self.conv_w.shape, self.conv_b.shape, self.w1.shape, self.b1.shape, self.w2.shape, self.b2.shape)
+        return (self.conv_w.shape, self.conv_b.shape, self.w1.shape, self.b1.shape, self.w2.shape, self.b2.shape, self.gain.shape)
 
 
 # -- initializers --
@@ -85,23 +87,22 @@ def init_params(key: jax.Array, config: Config) -> Params:
     # learned 3x3 conv filters if requested
     if config.perception == 'learned3x3':
         kf = config.conv_features
-        fan_in = 3 * 3 * config.C
-        fan_out = kf
-        scale = jnp.sqrt(2.0 / (fan_in + fan_out))
-        conv_w = jax.random.normal(k1, ...) * scale
+        conv_w = jax.random.normal(k1, (kf, config.C, 3, 3), dtype=config.dtype) * jnp.sqrt(2.0 / (9*config.C + kf))
         conv_b = jnp.zeros((kf,), dtype=config.dtype)
-        k_w1 = k2
     else:
         conv_w = jnp.zeros((0,), dtype=config.dtype)
         conv_b = jnp.zeros((0,), dtype=config.dtype)
-        k_w1 = k2
 
     w1 = W1_init(k3, (in_dim, hidden), dtype=config.dtype)
     b1 = jnp.zeros((hidden,), dtype=config.dtype)
     w2 = W2_init(k4, (hidden, out_dim), dtype=config.dtype)
     b2 = jnp.zeros((out_dim,), dtype=config.dtype)
 
-    return Params(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2)
+    gain = jnp.full((out_dim,), 0.05, dtype=config.dtype)
+    gain = gain.at[config.idx_in_flag].set(0.0)
+    gain = gain.at[config.idx_out_flag].set(0.0)
+
+    return Params(conv_w=conv_w, conv_b=conv_b, w1=w1, b1=b1, w2=w2, b2=b2, gain=gain)
 
 # -- utils --
 

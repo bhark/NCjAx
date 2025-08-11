@@ -107,4 +107,4 @@ def init_params(key: jax.Array, config: Config) -> Params:
 # -- utils --
 
 def num_params(p: Params) -> int:
-    return sum(int(jnp.size(arr)) for arr in (p.conv_w, p.conv_b, p.w1, p.b1, p.w2, p.b2))
+    return sum(int(jnp.size(arr)) for arr in (p.conv_w, p.conv_b, p.w1, p.b1, p.w2, p.b2, p.gain))

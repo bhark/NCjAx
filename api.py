@@ -123,6 +123,32 @@ class NCASubstrate:
 
     # -- utils --
 
+    def clone(
+        self,
+        *,
+        copy_state: bool = True,
+        copy_params: bool = True,
+        key: jax.Array | None = None
+    ) -> 'NCASubstrate':
+        '''
+        create a clone of this substrate
+        '''
+        if key is None:
+            self.key, new_key = jax.random.split(self.key)
+        else:
+            new_key = key
+
+        new_state = self._state if copy_state else None
+        new_params = self._params if copy_params else None
+
+        return NCASubstrate(
+            config=self.config,
+            key=new_key,
+            params=new_params,
+            state=new_state,
+            jit_compile=hasattr(self, '_jit_rollout')
+        )
+
     def explain(self) -> str:
         C, N = self.config.C, self.config.grid_size
         pcount = num_params(self._params)

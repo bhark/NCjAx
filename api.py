@@ -37,12 +37,19 @@ class NCASubstrate:
                 lambda st, pr, key, K: core_rollout(st, pr, key, K, self.config),
                 static_argnames=('K',),
             )
-            self._jit_step = jax.jit(
-                lambda st, pr, key: core_step(st, pr, key, self.config)
+            self._jit_inform_nodes = jax.jit(
+                lambda st, vals, mode: io_ops.inform_nodes(st, self.config, vals, mode=mode),
+                static_argnames=('mode',)
+            )
+            self._jit_extract_nodes = jax.jit(
+                lambda st: io_ops.extract_nodes(st, self.config)
             )
         else:
             self._jit_rollout = lambda st, pr, key, K: core_rollout(st, pr, key, K, self.config)
-            self._jit_step = lambda st, pr, key: core_step(st, pr, key, self.config)
+            self._jit_inform_nodes = lambda st, vals, mode: io_ops.inform_nodes(st, self.config, vals, mode=mode)
+            self._jit_extract_nodes = lambda st: io_ops.extract_nodes(st, self.config)
+
+
 
     def step(self, K: int | None = None, *, key: jax.Array | None = None) -> State:
         '''
@@ -51,7 +58,7 @@ class NCASubstrate:
         K = self.config.k_default if K is None else int(K)
         key = self._use_or_split_key(key)
 
-        new_state, new_key = self._jit_rollout(self._state, self._params, key, K)
+        new_state, new_key = self._jit_rollout(self._state, self._params, key, K=K)
         self._state = new_state
         self.key = new_key
         return self._state
@@ -61,19 +68,29 @@ class NCASubstrate:
         like step(), but simply returns final state without mutating internal state
         '''
         key = self._use_or_split_key(key)
-        out_state, _ = self._jit_rollout(self._state, self._params, key, int(K))
+        out_state, _ = self._jit_rollout(self._state, self._params, key, K=int(K))
         return out_state
+
+    def process(self, inputs, K: int | None = None, *, mode: str = 'set', key: jax.Array | None = None) -> jnp.ndarray:
+        '''
+        complete processing pipeline
+        1. writes input
+        2. processes K ticks (while mutating internal state)
+        3. returns output
+        '''
+        self.inform(inputs, mode=mode)
+        self.step(K=K, key=key)
+        return self.extract()
 
     # -- i/o helpers to go slightly less insane --
 
     def write_inputs(self, values, *, mode: str = 'set') -> State:
-        self._state = io_ops.inform_nodes(self._state, self.config, values, mode=mode)
+        self._state = self._jit_inform_nodes(self._state, self.config, values, mode=mode)
         return self._state
 
     def read_outputs(self) -> jnp.ndarray:
-        return io_ops.extract_nodes(self._state, self.config)
+        return self._jit_extract_nodes(self._state, self.config)
 
-    # convenient wrappers
     def inform(self, value, *, mode: str = 'set') -> State:
         self._state = io_ops.inform(self._state, self.config, value=value, mode=mode)
         return self._state

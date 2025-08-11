@@ -88,7 +88,7 @@ def mlp(feats: jnp.ndarray, params: Params, config: Config) -> jnp.ndarray:
     out = out + params.b2
 
     delta = jnp.moveaxis(out, -1, 0)
-    delta = jnp.tanh(delta) # prevent explosion
+    delta = delta * 0.1 # prevent explosion
     return delta.astype(config.dtype)
 
 # -- fire-rate --

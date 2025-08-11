@@ -84,13 +84,6 @@ class NCASubstrate:
 
     # -- i/o helpers to go slightly less insane --
 
-    def write_inputs(self, values, *, mode: str = 'set') -> State:
-        self._state = self._jit_inform_nodes(self._state, self.config, values, mode=mode)
-        return self._state
-
-    def read_outputs(self) -> jnp.ndarray:
-        return self._jit_extract_nodes(self._state, self.config)
-
     def inform(self, value, *, mode: str = 'set') -> State:
         self._state = io_ops.inform(self._state, self.config, value=value, mode=mode)
         return self._state

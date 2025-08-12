@@ -29,8 +29,8 @@ class Config:
     perception: PerceptionMode = 'id_lap'
     hidden: int = 64 # mlp hidden width
 
-    fire_rate: float = 1.0 # per-cell update prob in [0, 1]
-    k_default: int = 1 # number of updates/ticks per step
+    fire_rate: float = 0.5 # per-cell update prob in [0, 1]
+    k_default: int = grid_size * 2 # number of updates/ticks per step
 
     dtype: DTypeLike = field(default=jnp.float32, repr=False)
 

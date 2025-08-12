@@ -98,7 +98,7 @@ def init_params(key: jax.Array, config: Config) -> Params:
     w2 = W2_init(k4, (hidden, out_dim), dtype=config.dtype)
     b2 = jnp.zeros((out_dim,), dtype=config.dtype)
 
-    gain = jnp.full((out_dim,), 0.05, dtype=config.dtype)
+    gain = jnp.full((out_dim,), 0.5, dtype=config.dtype)
     gain = gain.at[config.idx_in_flag].set(0.0)
     gain = gain.at[config.idx_out_flag].set(0.0)
 

@@ -139,6 +139,21 @@ def step(
     '''
     feats = perception(state, params, config)
     delta = mlp(feats, params, config)
+
+    C, H, W = state.grid.shape
+    info_idx = config.idx_info
+    in_idx   = config.idx_in_flag
+    out_idx  = config.idx_out_flag
+
+    center, up, down, left, right, *_ = _neighbor_taps(state.grid, config.padding)
+    lap = (up + down + left + right) - 4.0 * center
+
+    # only diffuse info + hidden channels (leave id flags untouched)
+    alpha = 0.05
+    mask  = jnp.ones((C,1,1), state.grid.dtype)
+    mask = mask.at[in_idx].set(0.0).at[out_idx].set(0.0)
+    delta = delta + alpha * lap * mask
+
     updated = state.grid + delta
     leak = 0.995
     updated = jnp.clip(updated * leak, -5.0, 5.0)

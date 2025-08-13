@@ -38,6 +38,10 @@ def _neighbor_taps(grid: jnp.ndarray, padding: str) -> tuple[jnp.ndarray, ...]:
     down_right = p[:, 2:  , 2:  ]
     return (center, up, down, left, right, up_left, up_right, down_left, down_right)
 
+def _laplacian(grid: jnp.ndarray, padding: str) -> jnp.ndarray:
+    center, up, down, left, right, *_ = _neighbor_taps(grid, padding)
+    return (up + down + left + right) - 4.0 * center
+
 def perception(state: State, params: Params, config: Config) -> jnp.ndarray:
     '''
     compute perception features for each cell
@@ -60,9 +64,8 @@ def perception(state: State, params: Params, config: Config) -> jnp.ndarray:
 
     # identity + laplacian
     if config.perception == 'id_lap':
-        center, up, down, left, right, *_ = _neighbor_taps(g, config.padding)
-        lap = (up + down + left + right) - 4.0 * center
-        feats = jnp.concatenate([center, lap], axis=0)
+        lap = _laplacian(g, config.padding)
+        feats = jnp.concatenate([g, lap], axis=0)
         return feats.astype(config.dtype)
 
     # raw9
@@ -145,8 +148,7 @@ def step(
     in_idx   = config.idx_in_flag
     out_idx  = config.idx_out_flag
 
-    center, up, down, left, right, *_ = _neighbor_taps(state.grid, config.padding)
-    lap = (up + down + left + right) - 4.0 * center
+    lap = _laplacian(state.grid, config.padding)
 
     # only diffuse info + hidden channels (leave id flags untouched)
     alpha = 0.05

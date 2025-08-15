@@ -25,7 +25,7 @@ class NCA:
         def _extract(st):
             return io.extract(st, c)
 
-        def _process(st, pr, key, *, x, K=None, mode="set"):
+        def _process(st, pr, key, x, *, K=None, mode="set"):
             k = c.k_default if K is None else int(K)
             st1 = _inform(st, value=x, mode=mode)
             st2, key2 = _rollout(st1, pr, key, K=k)

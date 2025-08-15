@@ -16,7 +16,7 @@ def pretrain(
     K: int | None = None,
     lr: float = 1e-2,
     eps: float = 5e-2
-) -> tuple[Params, jax.Array]:
+) -> tuple[Params, jax.Array, float]:
     '''
     nca gets stuck in a local minima without pretraining
     trains to reproduce input-node values at output nodes

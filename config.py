@@ -21,16 +21,16 @@ class Config:
     - 'learned3x3': 3x3 conv with K learnable filters
     """
 
-    grid_size: int = 16
+    grid_size: int = 8
     hidden_channels: int = 8
     num_input_nodes: int = 8
     num_output_nodes: int = 2
 
-    perception: PerceptionMode = 'id_lap'
+    perception: PerceptionMode = 'learned3x3'
     hidden: int = 64 # mlp hidden width
 
-    fire_rate: float = 0.5 # per-cell update prob in [0, 1]
-    k_default: int = grid_size * 2 # number of updates/ticks per step
+    fire_rate: float = 0.8 # per-cell update prob in [0, 1]
+    k_default: int = int((grid_size / fire_rate) * 2)
 
     dtype: DTypeLike = field(default=jnp.float32, repr=False)
 

@@ -23,10 +23,8 @@ def process(
 
 def make_fns(config: Config):
     step = jax.jit(lambda st, pr, key: core.step(st, pr, key, config))
-    rollout = jax.jit(lambda st, pr, key, K: core.rollout(st, pr, key, K, config),
-                      static_argnames=("K",))
-    inform = jax.jit(lambda st, vals, mode: io.inform(st, config, value=vals, mode=mode),
-                     static_argnames=("mode",))
+    rollout = jax.jit(lambda st, pr, key, K: core.rollout(st, pr, key, K, config))
+    inform = jax.jit(lambda st, vals, mode: io.inform(st, config, value=vals, mode=mode))
     extract = jax.jit(lambda st: io.extract(st, config))
     process_jit = jax.jit(
         lambda st, pr, key, x, K, mode: process(st, pr, key, x, config=config, K=K, mode=mode),

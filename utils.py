@@ -5,7 +5,8 @@ def _circle_layout(N: int, k: int, radius_ratio: float = 0.35) -> jnp.ndarray:
     c = (N - 1) / 2.0
     r = max(1.0, radius_ratio * N)
     idx = jnp.arange(k, dtype=jnp.float32)
-    theta = 2.0 * jnp.pi * (idx / float(k))
+    den = jnp.maximum(1.0, jnp.asarray(k, jnp.float32))
+    theta = 2.0 * jnp.pi * (idx / den)
     xs = jnp.clip(jnp.round(c + r * jnp.cos(theta)), 0, N - 1).astype(jnp.int32)
     ys = jnp.clip(jnp.round(c + r * jnp.sin(theta)), 0, N - 1).astype(jnp.int32)
     return jnp.stack([xs, ys], axis=-1)  # (k,2)

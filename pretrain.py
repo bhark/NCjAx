@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 from jax import lax
+import optax
 
 from .config import Config
 from .structure import Params, init_state
@@ -11,11 +12,12 @@ def pretrain(
     params: Params,
     config: Config,
     *,
-    steps: int = 2000,
+    steps: int = 500,
     batch_size: int = 64,
     K: int | None = None,
-    lr: float = 1e-2,
-    eps: float = 5e-2
+    lr: float = 1e-3,
+    eps: float = 5e-2,
+    clip_by_global_norm = 1.0
 ) -> tuple[Params, jax.Array, float]:
     '''
     nca gets stuck in a local minima without pretraining
@@ -46,17 +48,27 @@ def pretrain(
             return jnp.mean((y - y_true) ** 2)
         return jnp.mean(jax.vmap(_one)(keys, xs))
 
+    tx = optax.chain(
+        optax.clip_by_global_norm(clip_by_global_norm),
+        optax.adam(lr),
+    )
+    opt_state = tx.init(params)
+
     @jax.jit
     def _step(carry, _):
-        p, k0 = carry
+        p, opt_state, k0 = carry
         k0, kx, kk = jax.random.split(k0, 3)
         xs = jax.random.uniform(kx, (batch_size, k), minval=-1.0, maxval=1.0, dtype=dtype)
         ks = jax.random.split(kk, batch_size)
         loss, grads = jax.value_and_grad(loss_fn)(p, ks, xs)
-        p = jax.tree_util.tree_map(lambda w, g: w - lr * g, p, grads)   # plain SGD
-        return (p, k0), loss
+        grads = jax.tree_util.tree_map(jnp.nan_to_num, grads)
+        updates, opt_state = tx.update(grads, opt_state, p)
+        p = optax.apply_updates(p, updates)
+        return (p, opt_state, k0), loss
 
-    (p_out, key_out), _ = lax.scan(_step, (params, key), xs=None, length=int(steps))
+    (p_out, opt_state, key_out), _ = lax.scan(
+        _step, (params, opt_state, key), xs=None, length=int(steps)
+    )
 
     # --- final eval (fresh batch) ---
     key_out, kx, kk = jax.random.split(key_out, 3)

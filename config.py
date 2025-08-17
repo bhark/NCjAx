@@ -30,7 +30,7 @@ class Config:
     hidden: int = 64 # mlp hidden width
 
     fire_rate: float = 0.8 # per-cell update prob in [0, 1]
-    k_default: int = int((grid_size / fire_rate) * 2)
+    k_default: int = None
 
     dtype: DTypeLike = field(default=jnp.float32, repr=False)
 
@@ -90,7 +90,7 @@ class Config:
             raise ValueError(f'Hidden width must be larger than 0, got {self.hidden}')
         if not (0.0 <= self.fire_rate <= 1.0):
             raise ValueError(f'Fire rate must be in [0,1], got {self.fire_rate}')
-        if self.k_default <= 0:
+        if self.k_default and self.k_default <= 0:
             raise ValueError(f'K must be larger than 0, got {self.k_default}')
         if self.perception not in ('id_lap', 'raw9', 'learned3x3'):
             raise ValueError(f'Unsupported perception mode: {self.perception}')
@@ -103,6 +103,8 @@ class Config:
         if self.perception == 'learned3x3' and self.conv_features <= 0:
             raise ValueError('conv_features must be > 0 for learned3x3')
         object.__setattr__(self, 'dtype', jnp.dtype(self.dtype))
+        if not self.k_default:
+            object.__setattr__(self, 'k_default', int((self.grid_size / self.fire_rate) * 2)) # compute a sane default
 
     
     # -- convenience stuff --

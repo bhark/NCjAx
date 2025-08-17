@@ -157,8 +157,6 @@ def step(
     delta = delta + alpha * lap * mask
 
     updated = state.grid + delta
-    leak = 0.995 # slightly increases stability
-    updated = updated * leak
     updated = _apply_read_only(updated, state.grid, config)
     mixed, key = _apply_fire_rate(key, updated, state.grid, config.fire_rate)
     return State(grid=mixed), key

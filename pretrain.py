@@ -12,7 +12,7 @@ def pretrain(
     params: Params,
     config: Config,
     *,
-    steps: int = 500,
+    steps: int = 1000,
     batch_size: int = 64,
     K: int | None = None,
     lr: float = 1e-3,

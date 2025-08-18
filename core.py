@@ -148,14 +148,6 @@ def step(
     in_idx   = config.idx_in_flag
     out_idx  = config.idx_out_flag
 
-    lap = _laplacian(state.grid, config.padding)
-
-    # only diffuse info + hidden channels (leave id flags untouched)
-    alpha = 0.05
-    mask  = jnp.ones((C,1,1), state.grid.dtype)
-    mask = mask.at[in_idx].set(0.0).at[out_idx].set(0.0)
-    delta = delta + alpha * lap * mask
-
     updated = state.grid + delta
     updated = _apply_read_only(updated, state.grid, config)
     mixed, key = _apply_fire_rate(key, updated, state.grid, config.fire_rate)

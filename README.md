@@ -11,7 +11,6 @@ Neural Cellular Automata as a computing substrate, implemented in JAX
 - [x] I/O tooling (sending data to, and receiving data from, the substrate)
 - [x] Trainable convolutional filters to replace/extend identity+laplacian
 - [x] "Fire rate" (stochastic per-cell dropout) as a stability measure
-- [x] Diffusion as a stability measure
 - [x] Pretraining helper (simple identity mapping to help escape local minima)
 - [x] Trainable gain
 - [x] Simple API interface

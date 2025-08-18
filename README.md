@@ -7,6 +7,8 @@ Neural Cellular Automata as a computing substrate, implemented in JAX
 
 ### Roadmap
 
+If you feel like contributing, be my guest. Here's what's missing to align properly with the papers (and hopefully achieve some sort of learning ability beyond input->output mapping):
+
 - [x] Fundamental NCA substrate
 - [x] I/O tooling (sending data to, and receiving data from, the substrate)
 - [x] Trainable convolutional filters to replace/extend identity+laplacian

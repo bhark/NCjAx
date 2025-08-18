@@ -1,21 +1,29 @@
-# Neural Cellular Automata as computing substrate
+# PyNCA
+
+Neural Cellular Automata as a computing substrate, implemented in JAX
 
 > [!NOTE]
 > This is a WIP. It is, at the moment, completely undocumented and not very robust. 
 
-This library attempts to use NCA as a trainable policy. It is intentionally lean - bring your own training routine. 
+### Roadmap
 
-### Current state
-
-I have yet to be able to reproduce the results claimed by Alexandre Variengien et. al. in (3). They use a lot of very clever tricks to maintain stability which are still lacking from this implementation (pretraining on a simpler task, pool sampling, damage). 
-
-### What's what?
-
-This is a playground, not a production library. Don't expect anything to align perfectly with conventions or papers. 
+- [x] Fundamental NCA substrate
+- [x] I/O tooling (sending data to, and receiving data from, the substrate)
+- [x] Trainable convolutional filters to replace/extend identity+laplacian
+- [x] "Fire rate" (stochastic per-cell dropout) as a stability measure
+- [x] Diffusion as a stability measure
+- [x] Pretraining helper (simple identity mapping to help escape local minima)
+- [x] Trainable gain
+- [x] Simple API interface
+- [ ] Pool sampling for robustness
+- [ ] Stochastic damage to cells during processing
+- [ ] (Maybe) provide a training routine (probably DQN)
+- [ ] Solving CartPole!
+- [ ] Some sort of documentation
 
 ## The papers
 
-This implementation takes a bit from each of the following papers (and leaves some things out).
+This implementation takes a bit from each of the following very nice papers:
 
 - (1): [A Path to Universal Neural Cellular Automata](https://arxiv.org/pdf/2505.13058)
 - (2): [Growing Neural Cellular Automata](https://distill.pub/2020/growing-ca/)

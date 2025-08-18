@@ -22,12 +22,12 @@ class Config:
     """
 
     grid_size: int = 8
-    hidden_channels: int = 8
+    hidden_channels: int = 3
     num_input_nodes: int = 8
     num_output_nodes: int = 2
 
     perception: PerceptionMode = 'learned3x3'
-    hidden: int = 64 # mlp hidden width
+    hidden: int = 30 # mlp hidden width
 
     fire_rate: float = 0.8 # per-cell update prob in [0, 1]
     k_default: int = None

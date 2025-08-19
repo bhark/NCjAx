@@ -19,6 +19,7 @@ If you feel like contributing, be my guest. Here's what's missing to align prope
 - [ ] Pool sampling for robustness
 - [ ] Stochastic damage to cells during processing
 - [ ] (Maybe) provide a training routine (probably DQN)
+- [ ] (Maybe) experiment with hardware as in (1)
 - [ ] Solving CartPole!
 - [ ] Some sort of documentation
 

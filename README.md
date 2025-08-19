@@ -1,9 +1,9 @@
-# PyNCA
+# NCjAx
 
-Neural Cellular Automata as a computing substrate, implemented in JAX
+Neural Cellular Automata as a universal computing substrate accelerated with JAX.
 
 > [!NOTE]
-> This is a WIP. It is, at the moment, completely undocumented and not very robust. 
+> This is a WIP. It is, at the moment, undocumented and suffers from bad manners (unstable, unreliable, difficult to train).
 
 ### Roadmap
 

@@ -85,7 +85,7 @@ def init_params(key: jax.Array, config: Config) -> Params:
     # learned 3x3 conv filters if requested
     if config.perception == 'learned3x3':
         kf = config.conv_features
-        conv_w = jax.random.normal(k1, (kf, config.C, 3, 3), dtype=config.dtype) * jnp.sqrt(2.0 / (9*config.C + kf))
+        conv_w = jax.random.normal(k1, (kf, config.C, 3, 3), dtype=config.dtype) * jnp.sqrt(2.0 / (9*config.C))
         conv_b = jnp.zeros((kf,), dtype=config.dtype)
     else:
         conv_w = jnp.zeros((0,), dtype=config.dtype)

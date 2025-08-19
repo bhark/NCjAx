@@ -40,7 +40,7 @@ class NCA:
         object.__setattr__(self, "inform",  jax.jit(_inform,  static_argnames=("mode",)))
         object.__setattr__(self, "extract", jax.jit(_extract))
         object.__setattr__(self, "process", jax.jit(_process, static_argnames=("K","mode")))
-        object.__setattr__(self, "pretrain", jax.jit(_pretrain, static_argnames=("steps")))
+        object.__setattr__(self, "pretrain", jax.jit(_pretrain, static_argnames=("steps","batch_size","K")))
 
     def init_params(self, key):
             return _init_params(key, self.config)

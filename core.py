@@ -6,6 +6,7 @@ from .config import Config
 from .structure import State, Params
 
 # -- padding helpers --
+
 def _pad_chw(grid: jnp.ndarray, padding: str) -> jnp.ndarray:
     # grid: (C,H,W) -> pad 1 on H/W
     if padding == 'reflect':
@@ -13,11 +14,6 @@ def _pad_chw(grid: jnp.ndarray, padding: str) -> jnp.ndarray:
     # zeros
     return jnp.pad(grid, ((0,0),(1,1),(1,1)), mode='constant', constant_values=0.0)
 
-def _pad_nchw(x: jnp.ndarray, padding: str) -> jnp.ndarray:
-    # x: (N,C,H,W)
-    if padding == 'reflect':
-        return jnp.pad(x, ((0,0),(0,0),(1,1),(1,1)), mode='reflect')
-    return jnp.pad(x, ((0,0),(0,0),(1,1),(1,1)), mode='constant', constant_values=0.0)
 
 # -- perception --
 
@@ -49,13 +45,18 @@ def perception(state: State, params: Params, config: Config) -> jnp.ndarray:
     g = state.grid
 
     if config.perception == 'learned3x3':
-        # NCHW input
         x = g[None, :, :, :]
-        x = _pad_nchw(x, config.padding)
         w = params.conv_w
         b = params.conv_b
+
+        if config.padding == 'reflect':
+            x = jnp.pad(x, ((0,0),(0,0),(1,1),(1,1)), mode='reflect')
+            conv_padding = 'VALID'
+        else:
+            conv_padding = 'SAME'
+
         feats = lax.conv_general_dilated(
-            x, w, window_strides=(1,1), padding='VALID',
+            x, w, window_strides=(1,1), padding=conv_padding,
             dimension_numbers=('NCHW', 'OIHW', 'NCHW')
         )
         if b.size > 0:

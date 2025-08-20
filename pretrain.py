@@ -70,7 +70,7 @@ def pretrain(
     )
 
     # --- final eval (fresh batch) ---
-    key_out, kx, kk = jax.random.split(key_out, 3)
+    kx, kk = jax.random.split(key_out)
     xs_eval = jax.random.uniform(kx, (batch_size, k), minval=-1.0, maxval=1.0, dtype=dtype)
     ks_eval = jax.random.split(kk, batch_size)
 
@@ -81,4 +81,4 @@ def pretrain(
         return jnp.mean(err < eps)
 
     final_acc = jnp.mean(jax.vmap(_eval_one)(ks_eval, xs_eval))
-    return p_out, key_out, final_acc
+    return p_out, final_acc

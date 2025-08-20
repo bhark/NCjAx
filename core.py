@@ -144,7 +144,6 @@ def step(
     feats = perception(state, params, config)
     delta = mlp(feats, params, config)
 
-    C, H, W = state.grid.shape
     info_idx = config.idx_info
     in_idx   = config.idx_in_flag
     out_idx  = config.idx_out_flag

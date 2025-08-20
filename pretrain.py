@@ -12,40 +12,51 @@ def pretrain(
     params: Params,
     config: Config,
     *,
-    steps: int = 1000,
+    steps: int = 500,
     batch_size: int = 64,
     K: int | None = None,
     lr: float = 1e-3,
     eps: float = 5e-2,
-    clip_by_global_norm = 1.0
-) -> tuple[Params, jax.Array, float]:
+    clip_by_global_norm: float = 1.0,
+    grid_clip_penalty: float = 1e-3,
+) -> tuple[Params, jax.Array]:
     '''
-    nca gets stuck in a local minima without pretraining
-    trains to reproduce input-node values at output nodes
+    curriculum pretraining: both outputs learn the mean of inputs.
+    also regularizes the grid to stay within [-1, 1] (excl. flag channels)
     '''
     K = config.k_default if K is None else int(K)
     m = int(config.num_output_nodes)
     k = int(config.num_input_nodes)
     dtype = config.dtype
 
-    def _project_inputs_to_outputs(x: jnp.ndarray) -> jnp.ndarray:
-        if m <= k:
-            return x[:m]
-        times = (m + k - 1) // k
-        return jnp.tile(x, times)[:m]
+    def _target_mean(x: jnp.ndarray) -> jnp.ndarray:
+        mu = jnp.mean(x)
+        return jnp.full((m,), mu, dtype=x.dtype)
 
-    def _forward_once(p: Params, k_: jax.Array, x_: jnp.ndarray) -> jnp.ndarray:
+    def _forward_once(p: Params, k_: jax.Array, x_: jnp.ndarray) -> tuple[jnp.ndarray, jnp.ndarray]:
         st0 = init_state(k_, config)
-        st1 = io.inform(st0, config, value=x_, mode='set')
+        st1 = io.inform(st0, config, value=x_, mode="set")
         st2, _ = core.rollout(st1, p, k_, K, config)
         y = io.extract(st2, config)
-        return y
+        return y, st2.grid
+
+    def _clip_reg(grid: jnp.ndarray, bound: float = 1.0) -> jnp.ndarray:
+        C = grid.shape[0]
+        mask = jnp.ones((C, 1, 1), dtype=grid.dtype)
+        mask = mask.at[config.idx_in_flag].set(0.0)
+        mask = mask.at[config.idx_out_flag].set(0.0)
+        g = grid * mask  # no boolean indexing
+
+        excess = jnp.maximum(0.0, jnp.abs(g) - bound)
+        return jnp.mean(excess * excess)
 
     def loss_fn(p: Params, keys: jax.Array, xs: jnp.ndarray) -> jnp.ndarray:
         def _one(k_, x_):
-            y = _forward_once(p, k_, x_)
-            y_true = _project_inputs_to_outputs(x_)
-            return jnp.mean((y - y_true) ** 2)
+            y, G = _forward_once(p, k_, x_)
+            y_true = _target_mean(x_)
+            mse = jnp.mean((y - y_true) ** 2)
+            reg = _clip_reg(G)
+            return mse + grid_clip_penalty * reg
         return jnp.mean(jax.vmap(_one)(keys, xs))
 
     tx = optax.chain(
@@ -69,14 +80,13 @@ def pretrain(
         _step, (params, opt_state, key), xs=None, length=int(steps)
     )
 
-    # --- final eval (fresh batch) ---
     kx, kk = jax.random.split(key_out)
     xs_eval = jax.random.uniform(kx, (batch_size, k), minval=-1.0, maxval=1.0, dtype=dtype)
     ks_eval = jax.random.split(kk, batch_size)
 
     def _eval_one(k_, x_):
-        y = _forward_once(p_out, k_, x_)
-        y_true = _project_inputs_to_outputs(x_)
+        y, _ = _forward_once(p_out, k_, x_)
+        y_true = _target_mean(x_)
         err = jnp.abs(y - y_true)
         return jnp.mean(err < eps)
 

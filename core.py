@@ -60,18 +60,18 @@ def perception(state: State, params: Params, config: Config) -> jnp.ndarray:
         )
         if b.size > 0:
             feats = feats + b[None, :, None, None]
-        return jnp.squeeze(feats, axis=0).astype(config.dtype)
+        return jnp.squeeze(feats, axis=0)
 
     # identity + laplacian
     if config.perception == 'id_lap':
         lap = _laplacian(g, config.padding)
         feats = jnp.concatenate([g, lap], axis=0)
-        return feats.astype(config.dtype)
+        return feats
 
     # raw9
     taps = _neighbor_taps(g, config.padding)
     feats = jnp.concatenate(list(taps), axis=0)
-    return feats.astype(config.dtype)
+    return feats
 
 
 # -- mlp --
@@ -92,7 +92,7 @@ def mlp(feats: jnp.ndarray, params: Params, config: Config) -> jnp.ndarray:
 
     delta = jnp.moveaxis(out, -1, 0)
     delta = jnp.tanh(delta) * params.gain[:, None, None]
-    return delta.astype(config.dtype)
+    return delta
 
 # -- fire-rate --
 

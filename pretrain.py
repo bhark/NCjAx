@@ -81,5 +81,5 @@ def pretrain(
         err = jnp.abs(y - y_true)
         return jnp.mean(err < eps)
 
-    final_acc = jnp.mean(jax.vmap(_eval_one)(ks_eval, xs_eval)).astype(dtype)
+    final_acc = jnp.mean(jax.vmap(_eval_one)(ks_eval, xs_eval))
     return p_out, key_out, final_acc

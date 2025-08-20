@@ -26,7 +26,7 @@ conf = Config(
     hidden=30,
 )
 
-# nice little config wrapper - avoids threading config every time, and provides some other quality-of-life
+# set up our nice little helper
 nca = NCA(conf)
 
 key, init_key, pretrain_key = jax.random.split(key, 3)

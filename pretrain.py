@@ -54,7 +54,6 @@ def pretrain(
     )
     opt_state = tx.init(params)
 
-    @jax.jit
     def _step(carry, _):
         p, opt_state, k0 = carry
         k0, kx, kk = jax.random.split(k0, 3)
@@ -64,7 +63,7 @@ def pretrain(
         grads = jax.tree_util.tree_map(jnp.nan_to_num, grads)
         updates, opt_state = tx.update(grads, opt_state, p)
         p = optax.apply_updates(p, updates)
-        return (p, opt_state, k0), loss
+        return (p, opt_state, k0), None
 
     (p_out, opt_state, key_out), _ = lax.scan(
         _step, (params, opt_state, key), xs=None, length=int(steps)

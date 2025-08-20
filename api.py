@@ -30,7 +30,7 @@ class NCA:
             st1 = _inform(st, value=x, mode=mode)
             st2, key2 = _rollout(st1, pr, key, K=k)
             out = _extract(st2)
-            return out, st2, key2
+            return out, st2
 
         def _pretrain(pr, key, **kwargs):
             return pretrain(key=key, params=pr, config=c, **kwargs)

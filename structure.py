@@ -80,7 +80,7 @@ def init_params(key: jax.Array, config: Config) -> Params:
     hidden = config.hidden
     out_dim = config.C
 
-    k1, k2, k3 = jax.random.split(key, 3)
+    k1, k2, k3, k4 = jax.random.split(key, 4)
 
     # learned 3x3 conv filters if requested
     if config.perception == 'learned3x3':
@@ -93,7 +93,7 @@ def init_params(key: jax.Array, config: Config) -> Params:
     
     w1 = glorot_uniform()(k3, (in_dim, hidden), dtype=config.dtype)
     b1 = jnp.zeros((hidden,), dtype=config.dtype)
-    w2 = glorot_uniform()(k3, (hidden, out_dim), dtype=config.dtype)
+    w2 = glorot_uniform()(k4, (hidden, out_dim), dtype=config.dtype)
     b2 = jnp.zeros((out_dim,), dtype=config.dtype)
 
     gain = jnp.full((out_dim,), 0.5, dtype=config.dtype)

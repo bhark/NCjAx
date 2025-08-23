@@ -68,6 +68,14 @@ def init_state(key: jax.Array, config: Config) -> State:
     inp_xy = _circle_layout(N, config.num_input_nodes)
     g = g.at[in_idx, inp_xy[:,1], inp_xy[:,0]].set(1.0)
 
+    # per paper: at input cells, hidden channels start at 1 (and remain fixed by core freeze)
+    H = config.hidden_channels
+    if H > 0:
+        x = inp_xy[:, 0]
+        y = inp_xy[:, 1]
+        for c in range(1, 1 + H):
+            g = g.at[c, y, x].set(1.0)
+
     # output nodes near center
     out_xy = _default_output_nodes(N, config.num_output_nodes)
     g = g.at[out_idx, out_xy[:,1], out_xy[:,0]].set(1.0)

@@ -121,15 +121,12 @@ def _apply_read_only(updated: jnp.ndarray, old: jnp.ndarray, config: Config) -> 
     '''  flag channels are immutable, and info channel is immutable at input cells '''
     in_idx = config.idx_in_flag
     out_idx = config.idx_out_flag
-    info_idx = config.idx_info
 
     updated = updated.at[in_idx, :, :].set(old[in_idx, :, :])
     updated = updated.at[out_idx, :, :].set(old[out_idx, :, :])
 
     in_mask = old[in_idx, :, :] > 0.5
-    info_protected = jnp.where(in_mask, old[info_idx, :, :], updated[info_idx, :, :])
-    updated = updated.at[info_idx, :, :].set(info_protected)
-    return updated
+    return jnp.where(in_mask[None, :, :], old, updated)
 
 # -- step and rollout --
 def step(

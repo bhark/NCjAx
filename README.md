@@ -3,7 +3,7 @@
 Neural Cellular Automata as a universal computing substrate accelerated with JAX.
 
 > [!NOTE]
-> This is a WIP. It is, at the moment, undocumented and suffers from bad manners (unstable, unreliable, difficult to train).
+> This takes lots of inspiration from the papers at the bottom of the readme, but also takes some liberties here and there. Assume nothing; expect everything.
 
 ## Usage
 
@@ -50,7 +50,6 @@ output, next_state = nca.process(nca_state, nca_params, processing_key, input)
 
 Note that although NCjAx is functionally pure, NCA is by nature stateful. Preserve the state and pass it back the next time around.
 
-
 ## Roadmap
 
 If you feel like contributing, be my guest. Here's what's missing to align properly with the papers (and hopefully achieve some sort of learning ability beyond input->output mapping):
@@ -62,9 +61,19 @@ If you feel like contributing, be my guest. Here's what's missing to align prope
 - [x] Pretraining helper (simple identity mapping to help escape local minima)
 - [x] Trainable gain
 - [x] Simple API interface
-- [ ] Solving CartPole!
+- [x] Solving CartPole!
 
-So... Solving cartpole. If anyone manages, please let me know. At the moment, I haven't figured out how to break out of a degenerate local minima where the same action is called constantly. 
+## Results
+
+This implementation of Neural Cellular Automata was used as the control policy in Cartpole-v1. It was trained using Double DQN with PER and a slight overflow penalty. To avoid clock hacking and statue-like behavior, a fire rate of 0.5 was used, in line with the fantastic paper (3). The reward system was *not* manipulated - we relied entirely on the standard cartpole reward scheme. No pool sampling was used. We used a grid size of 12x12, a fixed K=35 per environment step, 6 hidden channels and 20 learned filters. A compacted version of the training regimen can be found in [examples/nca_dqn.py](examples/nca_dqn.py). 
+
+![NCA balancing a pole on a cart](examples/cartpole_nca.gif)
+
+## But why?
+
+NCA has some very interesting properties; the idea of a universal function approximator, capable of developing memory, self-regeneration and complex emergence is fantastic. It is extremely computationally demanding and requires lots of stabilizing tricks to solve something as simple as CartPole, thus cleary not a viable contender for any sort of practical use at the moment. 
+
+So, why? Because of the *implications*. 
 
 ## The papers
 

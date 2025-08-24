@@ -1,6 +1,6 @@
 # NCjAx
 
-Neural Cellular Automata as a universal computing substrate accelerated with JAX.
+Neural Cellular Automata as a universal digital computing substrate accelerated with JAX.
 
 > [!NOTE]
 > This takes lots of inspiration from the papers at the bottom of the readme, but also takes some liberties here and there. Assume nothing; expect everything.
@@ -19,11 +19,11 @@ from NCjAx import NCA, Config
 conf = Config(
     num_input_nodes=num_input,
     num_output_nodes=num_output,
-    k_default=65,
+    k_default=35,
     grid_size=16,
-    hidden_channels=3,
+    hidden_channels=4, # cell state hidden channels
     perception='learned3x3',
-    hidden=30,
+    hidden=30, # mlp hidden layer
 )
 
 # set up our nice little helper
@@ -35,7 +35,7 @@ key, init_key, pretrain_key = jax.random.split(key, 3)
 params = nca.init_params(init_key)
 
 # curriculum pretraining - helps to break out of local minima from the get-go
-params, key, pretrain_accuracy = nca.pretrain(params, pretrain_key, steps=3000)
+params, pretrain_accuracy = nca.pretrain(params, pretrain_key, steps=3000)
 ```
 
 ### Processing

@@ -32,8 +32,8 @@ class NCA:
             out = _extract(st2)
             return out, st2
 
-        def _overflow(st, *, bound: float = 5.0):
-            return core.overflow(st, c, bound=bound)
+        def _get_overflow_penalty(st, *, bound: float = 5.0):
+            return core.get_overflow_penalty(st, c, bound=bound)
 
         def _pretrain(pr, key, **kwargs):
             return pretrain(key=key, params=pr, config=c, **kwargs)
@@ -44,7 +44,7 @@ class NCA:
         object.__setattr__(self, "extract", jax.jit(_extract))
         object.__setattr__(self, "process", jax.jit(_process, static_argnames=("K","mode")))
         object.__setattr__(self, "pretrain", jax.jit(_pretrain, static_argnames=("steps","batch_size","K")))
-        object.__setattr__(self, "overflow", jax.jit(_overflow, static_argnames=("bound",)))
+        object.__setattr__(self, "get_overflow_penalty", jax.jit(_get_overflow_penalty, static_argnames=("bound",)))
 
     def init_params(self, key):
             return _init_params(key, self.config)

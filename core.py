@@ -167,16 +167,17 @@ def rollout(
     (final_state, final_key), _ = lax.scan(_body, (state, key), xs=None, length=int(K))
     return final_state, final_key
 
-def overflow(state: State, config: Config, bound: float = 5.0) -> jnp.ndarray:
+def get_overflow_penalty(state: State, config: Config, bound: float = 5.0) -> jnp.ndarray:
     '''
-    total overflow across all non-flag channels, scaled quadratically
+    compute an overflow penalty across all non-flag channels
+    scaled quadratically and normalized to grid size
     helper to be used for applying loss penalties
     '''
     g = state.grid
-    C = g.shape[0]
+    C, H, W = g.shape
     mask = jnp.ones((C, 1, 1), dtype=g.dtype)
     mask = mask.at[config.idx_in_flag].set(0.0)
     mask = mask.at[config.idx_out_flag].set(0.0)
     g = g * mask
     excess = jnp.maximum(0.0, jnp.abs(g) - bound)
-    return jnp.sum(excess * excess)
+    return jnp.sum(excess * excess) / (H * W)

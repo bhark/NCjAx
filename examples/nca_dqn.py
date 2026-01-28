@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 
+'''
+This is a rough (read: slightly messy and too compact) 
+example of training the NCA substrate using Deep Q Learning. 
+It is provided as reference only.
+'''
+
 import jax, jax.numpy as jnp, numpy as np, optax, gymnasium as gym, random
 from collections import namedtuple
 from tqdm import tqdm
